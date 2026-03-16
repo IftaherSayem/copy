@@ -260,11 +260,12 @@ export default function UserDashboard() {
 
         {/* Stats Cards - hide for admin */}
         {!isAdmin && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {[
             { label: t("dash.total_spent"), value: `৳${totalSpent.toLocaleString()}`, icon: Wallet, color: "text-red-400", bg: "bg-red-500/10" },
             { label: t("dash.total_earned"), value: `৳${totalEarned.toLocaleString()}`, icon: TrendingUp, color: "text-green-400", bg: "bg-green-500/10" },
-            { label: t("dash.pending_orders"), value: pendingCount, icon: Clock, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+            { label: "পেন্ডিং ব্যালেন্স", value: `৳${pendingPayoutBalance.toLocaleString()}`, icon: Clock, color: "text-orange-400", bg: "bg-orange-500/10" },
+            { label: t("dash.pending_orders"), value: pendingCount, icon: AlertCircle, color: "text-yellow-400", bg: "bg-yellow-500/10" },
             { label: t("dash.completed_orders"), value: completedCount, icon: CheckCircle2, color: "text-primary", bg: "bg-primary/10" },
           ].map((s, i) => (
             <Card key={i} className="bg-card border-border">
