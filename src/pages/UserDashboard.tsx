@@ -289,7 +289,7 @@ export default function UserDashboard() {
             <TabsTrigger value="password" className="gap-2"><Lock className="w-4 h-4" />{t("dash.password_tab")}</TabsTrigger>
             {!isAdmin && <TabsTrigger value="listings" className="gap-2"><ShoppingBag className="w-4 h-4" />{t("dash.my_listings_tab")} ({myListings.length})</TabsTrigger>}
             {!isAdmin && <TabsTrigger value="orders" className="gap-2"><Package className="w-4 h-4" />{t("dash.orders_tab")} ({orders.length})</TabsTrigger>}
-            
+            {!isAdmin && sellOrders.length > 0 && <TabsTrigger value="payouts" className="gap-2"><Wallet className="w-4 h-4" /> পেআউট ({sellOrders.filter(o => o.status === "completed").length})</TabsTrigger>}
           </TabsList>
 
           {/* PROFILE TAB */}
