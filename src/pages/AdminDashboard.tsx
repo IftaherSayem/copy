@@ -874,52 +874,8 @@ function PayoutManagementTab({
   const [confirming, setConfirming] = useState(false);
   const [localOrders, setLocalOrders] = useState(orders);
 
-  // Withdrawal requests from DB
-  const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
-  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const methodLabels: Record<string, string> = {
-    bkash: "বিকাশ",
-    nagad: "নগদ",
-    rocket: "রকেট",
-    usdt: "USDT",
-    trx: "TRX",
-  };
 
-  const withdrawalStatusConfig: Record<string, { label: string; className: string }> = {
-    pending: { label: "পেন্ডিং", className: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30" },
-    completed: { label: "সম্পন্ন", className: "bg-green-500/20 text-green-500 border-green-500/30" },
-    cancelled: { label: "বাতিল", className: "bg-red-500/20 text-red-500 border-red-500/30" },
-  };
-
-  useEffect(() => {
-    const fetchWithdrawals = async () => {
-      setLoadingWithdrawals(true);
-      const { data, error } = await (supabase as any)
-        .from("withdrawal_requests")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error) setWithdrawals(data || []);
-      setLoadingWithdrawals(false);
-    };
-    fetchWithdrawals();
-  }, []);
-
-  const updateWithdrawalStatus = async (id: string, newStatus: string) => {
-    setUpdatingId(id);
-    const { error } = await (supabase as any)
-      .from("withdrawal_requests")
-      .update({ status: newStatus })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "ত্রুটি", description: error.message, variant: "destructive" });
-    } else {
-      setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
-      toast({ title: "✅ স্ট্যাটাস আপডেট হয়েছে" });
-    }
-    setUpdatingId(null);
-  };
 
   // Sync localOrders when parent orders change
   useEffect(() => { setLocalOrders(orders); }, [orders]);
