@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import {
   Wallet, TrendingUp, Clock, Send, Loader2, Banknote
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface WithdrawalRequest {
   id: string;
@@ -22,7 +24,7 @@ interface WithdrawalRequest {
   account: string;
   amount: number;
   status: "pending" | "completed" | "cancelled";
-  date: string;
+  created_at: string;
 }
 
 interface WalletPayoutsProps {
@@ -43,18 +45,52 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps) {
+  const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [method, setMethod] = useState("bkash");
   const [account, setAccount] = useState("");
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  // Demo history — in production this would come from a DB table
   const [history, setHistory] = useState<WithdrawalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const withdrawable = totalEarned - pendingPayout;
 
+  // Fetch withdrawal history from DB
+  useEffect(() => {
+    if (!user) return;
+    const fetchHistory = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("withdrawal_requests")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to fetch withdrawals:", error);
+      } else {
+        setHistory(
+          (data || []).map((row: any) => ({
+            id: row.id,
+            method: row.method,
+            account: row.account,
+            amount: Number(row.amount),
+            status: row.status,
+            created_at: row.created_at,
+          }))
+        );
+      }
+      setLoading(false);
+    };
+    fetchHistory();
+  }, [user]);
+
   const handleSubmit = async () => {
+    if (!user) {
+      toast({ title: "ত্রুটি", description: "লগইন করুন।", variant: "destructive" });
+      return;
+    }
     const amt = Number(amount);
     if (!account.trim() || account.trim().length < 11) {
       toast({ title: "ত্রুটি", description: "সঠিক অ্যাকাউন্ট নম্বর দিন (কমপক্ষে ১১ সংখ্যা)।", variant: "destructive" });
@@ -70,23 +106,47 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
     }
 
     setSubmitting(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 800));
 
-    const newRequest: WithdrawalRequest = {
-      id: crypto.randomUUID(),
-      method,
-      account: account.trim(),
-      amount: amt,
-      status: "pending",
-      date: new Date().toLocaleDateString("bn-BD"),
-    };
-    setHistory(prev => [newRequest, ...prev]);
+    const { data, error } = await supabase
+      .from("withdrawal_requests")
+      .insert({
+        user_id: user.id,
+        method,
+        account: account.trim(),
+        amount: amt,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Withdrawal insert error:", error);
+      toast({ title: "ত্রুটি", description: "উত্তোলন অনুরোধ জমা দিতে ব্যর্থ।", variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    setHistory(prev => [{
+      id: data.id,
+      method: data.method,
+      account: data.account,
+      amount: Number(data.amount),
+      status: data.status as "pending",
+      created_at: data.created_at,
+    }, ...prev]);
+
     setSubmitting(false);
     setModalOpen(false);
     setAccount("");
     setAmount("");
     toast({ title: "✅ উত্তোলন অনুরোধ জমা দেওয়া হয়েছে", description: "অ্যাডমিন শীঘ্রই প্রসেস করবে।" });
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("bn-BD");
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -127,7 +187,12 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {history.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+              <p className="text-muted-foreground text-sm">লোড হচ্ছে...</p>
+            </div>
+          ) : history.length === 0 ? (
             <div className="py-12 text-center">
               <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-muted-foreground text-sm">এখনও কোনো উত্তোলন অনুরোধ নেই।</p>
@@ -146,10 +211,10 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
                 </TableHeader>
                 <TableBody>
                   {history.map(row => {
-                    const st = statusConfig[row.status];
+                    const st = statusConfig[row.status] || statusConfig.pending;
                     return (
                       <TableRow key={row.id}>
-                        <TableCell className="text-sm">{row.date}</TableCell>
+                        <TableCell className="text-sm">{formatDate(row.created_at)}</TableCell>
                         <TableCell className="text-sm font-medium">{methodLabels[row.method] || row.method}</TableCell>
                         <TableCell className="text-sm font-mono">{row.account}</TableCell>
                         <TableCell className="text-sm font-bold">৳{row.amount.toLocaleString()}</TableCell>
@@ -179,7 +244,6 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
           </DialogHeader>
 
           <div className="space-y-5 py-2">
-            {/* Method */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">পেমেন্ট মেথড</Label>
               <RadioGroup value={method} onValueChange={setMethod} className="flex gap-3">
@@ -199,7 +263,6 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
               </RadioGroup>
             </div>
 
-            {/* Account Number */}
             <div className="space-y-2">
               <Label htmlFor="withdraw-account">অ্যাকাউন্ট নম্বর</Label>
               <Input
@@ -211,7 +274,6 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
               />
             </div>
 
-            {/* Amount */}
             <div className="space-y-2">
               <Label htmlFor="withdraw-amount">পরিমাণ (৳)</Label>
               <Input
