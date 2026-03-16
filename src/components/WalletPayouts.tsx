@@ -61,7 +61,7 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
     if (!user) return;
     const fetchHistory = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("withdrawal_requests")
         .select("*")
         .eq("user_id", user.id)
