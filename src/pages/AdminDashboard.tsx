@@ -922,6 +922,24 @@ function PayoutManagementTab({
         : o
       ));
       toast({ title: "✅ পেআউট সম্পন্ন", description: `ট্রানজেকশন আইডি: ${txId.trim()}` });
+
+      // Send notification to seller
+      const shortId = payModal.id.slice(0, 8).toUpperCase();
+      await supabase.rpc("create_notification", {
+        _user_id: payModal.sellerId,
+        _title: "💰 পেমেন্ট পেয়েছেন",
+        _message: `আপনার অর্ডার #${shortId} এর পেমেন্ট ৳${payModal.amount.toLocaleString()} সফলভাবে পাঠানো হয়েছে। TxID: ${txId.trim()}`,
+        _type: "payout",
+        _reference_id: payModal.id,
+      });
+      // Add English version
+      const { data: notifData } = await supabase.from("notifications").select("id").eq("user_id", payModal.sellerId).eq("type", "payout" as any).order("created_at", { ascending: false }).limit(1);
+      if (notifData?.[0]) {
+        await (supabase as any).from("notifications").update({
+          title_en: "💰 Payment Received",
+          message_en: `Payment of ৳${payModal.amount.toLocaleString()} for order #${shortId} has been sent. TxID: ${txId.trim()}`,
+        }).eq("id", notifData[0].id);
+      }
     }
 
     setConfirming(false);
@@ -984,16 +1002,6 @@ function PayoutManagementTab({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1"
-                              onClick={() => setExpandedOrder(expandedOrder === row.orderId ? null : row.orderId)}
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              চ্যাট
-                              <ChevronDown className={`w-3 h-3 transition-transform ${expandedOrder === row.orderId ? "rotate-180" : ""}`} />
-                            </Button>
                             {row.status === "pending" && (
                               <Button
                                 size="sm"
@@ -1009,19 +1017,6 @@ function PayoutManagementTab({
                           </div>
                         </TableCell>
                       </TableRow>
-                      {expandedOrder === row.orderId && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="p-4">
-                            <OrderChat
-                              orderId={row.orderId}
-                              buyerId={orders.find(o => o.id === row.orderId)?.buyer_id || ""}
-                              sellerId={row.sellerId}
-                              orderStatus="completed"
-                              isAdminView={true}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </React.Fragment>
                   ))}
                 </TableBody>
