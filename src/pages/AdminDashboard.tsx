@@ -881,7 +881,7 @@ function PayoutManagementTab({
   const [payModal, setPayModal] = useState<PayoutRow | null>(null);
   const [txId, setTxId] = useState("");
   const [confirming, setConfirming] = useState(false);
-  const [completedPayouts, setCompletedPayouts] = useState<Record<string, { txId: string }>>({});
+  const [localOrders, setLocalOrders] = useState(orders);
 
   // Withdrawal requests from DB
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
