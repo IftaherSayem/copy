@@ -226,6 +226,14 @@ export default function UserDashboard() {
   const totalEarned = sellOrders.filter(o => o.status === "completed").reduce((s, o) => s + Number(o.amount), 0);
   const pendingCount = orders.filter(o => ["pending","payment_submitted"].includes(o.status)).length;
   const completedCount = orders.filter(o => o.status === "completed").length;
+  
+  // Pending payout balance: completed orders where payout not yet done
+  const pendingPayoutBalance = sellOrders
+    .filter(o => o.status === "completed" && (o as any).payout_status !== "completed")
+    .reduce((s, o) => s + Number(o.amount), 0);
+  const paidPayoutBalance = sellOrders
+    .filter(o => o.status === "completed" && (o as any).payout_status === "completed")
+    .reduce((s, o) => s + Number(o.amount), 0);
 
   return (
     <div className="min-h-screen bg-background">
