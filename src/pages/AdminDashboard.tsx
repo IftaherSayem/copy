@@ -930,8 +930,11 @@ function PayoutManagementTab({
     setUpdatingId(null);
   };
 
+  // Sync localOrders when parent orders change
+  useEffect(() => { setLocalOrders(orders); }, [orders]);
+
   // Build payout rows from completed orders where seller needs to be paid
-  const payoutRows: PayoutRow[] = orders
+  const payoutRows: PayoutRow[] = localOrders
     .filter(o => o.status === "completed")
     .map(o => {
       const listing = listings.find(l => l.id === o.listing_id);
@@ -946,27 +949,38 @@ function PayoutManagementTab({
         paymentMethod: o.payment_method || "—",
         paymentInfo,
         date: new Date(o.created_at).toLocaleDateString("bn-BD"),
-        status: completedPayouts[o.id] ? "completed" : "pending",
-        transactionId: completedPayouts[o.id]?.txId,
+        status: ((o as any).payout_status === "completed" ? "completed" : "pending") as "pending" | "completed",
+        transactionId: (o as any).payout_transaction_id || undefined,
       };
     });
 
-  const handleConfirmPay = () => {
+  const handleConfirmPay = async () => {
     if (!payModal) return;
     if (!txId.trim() || txId.trim().length < 4) {
       toast({ title: "ত্রুটি", description: "সঠিক ট্রানজেকশন আইডি দিন।", variant: "destructive" });
       return;
     }
     setConfirming(true);
-    setTimeout(() => {
-      setCompletedPayouts(prev => ({ ...prev, [payModal.id]: { txId: txId.trim() } }));
-      setConfirming(false);
-      setPayModal(null);
-      setTxId("");
-      toast({ title: "✅ পেআউট সম্পন্ন", description: `ট্রানজেকশন আইডি: ${txId.trim()}` });
-    }, 600);
-  };
 
+    const { error } = await (supabase as any)
+      .from("orders")
+      .update({ payout_status: "completed", payout_transaction_id: txId.trim() })
+      .eq("id", payModal.id);
+
+    if (error) {
+      toast({ title: "ত্রুটি", description: error.message, variant: "destructive" });
+    } else {
+      setLocalOrders(prev => prev.map(o => o.id === payModal.id
+        ? { ...o, payout_status: "completed", payout_transaction_id: txId.trim() } as any
+        : o
+      ));
+      toast({ title: "✅ পেআউট সম্পন্ন", description: `ট্রানজেকশন আইডি: ${txId.trim()}` });
+    }
+
+    setConfirming(false);
+    setPayModal(null);
+    setTxId("");
+  };
   return (
     <>
       {/* Withdrawal Requests Section */}
