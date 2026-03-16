@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { ShieldCheck, Package, Users, MessageSquare, BarChart3, Loader2, Trash2, ChevronDown, AlertTriangle, Ban, Headphones, Download, FileSpreadsheet, FileText, Wallet, Send } from "lucide-react";
+import { ShieldCheck, Package, Users, MessageSquare, BarChart3, Loader2, Trash2, ChevronDown, AlertTriangle, Ban, Headphones, Download, FileSpreadsheet, FileText, Wallet, Send, Banknote } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { OrderChat } from "@/components/OrderChat";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
@@ -853,6 +853,16 @@ interface PayoutRow {
   transactionId?: string;
 }
 
+interface WithdrawalRow {
+  id: string;
+  user_id: string;
+  method: string;
+  account: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
+
 function PayoutManagementTab({
   orders,
   profiles,
@@ -873,12 +883,51 @@ function PayoutManagementTab({
   const [confirming, setConfirming] = useState(false);
   const [completedPayouts, setCompletedPayouts] = useState<Record<string, { txId: string }>>({});
 
+  // Withdrawal requests from DB
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>([]);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
   const methodLabels: Record<string, string> = {
     bkash: "বিকাশ",
     nagad: "নগদ",
     rocket: "রকেট",
     usdt: "USDT",
     trx: "TRX",
+  };
+
+  const withdrawalStatusConfig: Record<string, { label: string; className: string }> = {
+    pending: { label: "পেন্ডিং", className: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30" },
+    completed: { label: "সম্পন্ন", className: "bg-green-500/20 text-green-500 border-green-500/30" },
+    cancelled: { label: "বাতিল", className: "bg-red-500/20 text-red-500 border-red-500/30" },
+  };
+
+  useEffect(() => {
+    const fetchWithdrawals = async () => {
+      setLoadingWithdrawals(true);
+      const { data, error } = await (supabase as any)
+        .from("withdrawal_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error) setWithdrawals(data || []);
+      setLoadingWithdrawals(false);
+    };
+    fetchWithdrawals();
+  }, []);
+
+  const updateWithdrawalStatus = async (id: string, newStatus: string) => {
+    setUpdatingId(id);
+    const { error } = await (supabase as any)
+      .from("withdrawal_requests")
+      .update({ status: newStatus })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "ত্রুটি", description: error.message, variant: "destructive" });
+    } else {
+      setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: newStatus } : w));
+      toast({ title: "✅ স্ট্যাটাস আপডেট হয়েছে" });
+    }
+    setUpdatingId(null);
   };
 
   // Build payout rows from completed orders where seller needs to be paid
@@ -920,10 +969,99 @@ function PayoutManagementTab({
 
   return (
     <>
+      {/* Withdrawal Requests Section */}
+      <Card className="bg-card border-border mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Banknote className="w-5 h-5 text-primary" /> সেলার উত্তোলন অনুরোধ
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingWithdrawals ? (
+            <div className="py-12 text-center">
+              <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+              <p className="text-muted-foreground text-sm">লোড হচ্ছে...</p>
+            </div>
+          ) : withdrawals.length === 0 ? (
+            <div className="py-12 text-center">
+              <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+              <p className="text-muted-foreground text-sm">কোনো উত্তোলন অনুরোধ নেই।</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>তারিখ</TableHead>
+                    <TableHead>সেলার</TableHead>
+                    <TableHead>মেথড</TableHead>
+                    <TableHead>অ্যাকাউন্ট</TableHead>
+                    <TableHead>পরিমাণ</TableHead>
+                    <TableHead>স্ট্যাটাস</TableHead>
+                    <TableHead>অ্যাকশন</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {withdrawals.map(row => {
+                    const st = withdrawalStatusConfig[row.status] || withdrawalStatusConfig.pending;
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(row.created_at).toLocaleDateString("bn-BD")}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">{getProfileName(row.user_id)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{methodLabels[row.method] || row.method}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm font-mono">{row.account}</TableCell>
+                        <TableCell className="font-semibold">৳{Number(row.amount).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={`text-xs ${st.className}`}>{st.label}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {row.status === "pending" && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                                  disabled={updatingId === row.id}
+                                  onClick={() => updateWithdrawalStatus(row.id, "completed")}
+                                >
+                                  {updatingId === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                                  সম্পন্ন
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                  disabled={updatingId === row.id}
+                                  onClick={() => updateWithdrawalStatus(row.id, "cancelled")}
+                                >
+                                  <Ban className="w-3 h-3" /> বাতিল
+                                </Button>
+                              </>
+                            )}
+                            {row.status !== "pending" && (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Order-based Payouts Section */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-primary" /> পেআউট ম্যানেজমেন্ট
+            <Wallet className="w-5 h-5 text-primary" /> অর্ডার পেআউট ম্যানেজমেন্ট
           </CardTitle>
         </CardHeader>
         <CardContent>
