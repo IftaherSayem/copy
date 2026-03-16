@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { OrderChat } from "@/components/OrderChat";
 import { OrderStatusCard } from "@/components/OrderStatusCard";
-import { WalletPayouts } from "@/components/WalletPayouts";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 type Order = Tables<"orders">;
