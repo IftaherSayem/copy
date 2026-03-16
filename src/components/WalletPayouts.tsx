@@ -107,7 +107,7 @@ export function WalletPayouts({ totalEarned, pendingPayout }: WalletPayoutsProps
 
     setSubmitting(true);
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("withdrawal_requests")
       .insert({
         user_id: user.id,
