@@ -1,0 +1,31 @@
+{
+  "rewrites": [
+    { "source": "/(.*)\\.png", "destination": "/$1.png" },
+    { "source": "/(.*)\\.jpg", "destination": "/$1.jpg" },
+    { "source": "/(.*)", "destination": "/" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)\\.png",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0"
+        },
+        {
+          "key": "Accept-Ranges",
+          "value": "none"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+import { Facebook, Youtube, Instagram, Gamepad2, ShieldCheck, Wallet, ArrowLeft, AlertTriangle, MoreHorizontal, PackageX, Twitter, Linkedin } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const paymentMethods = [
+  { value: "bkash", label: "বিকাশ", number: "01XXXXXXXXX" },
+  { value: "nagad", label: "নগদ", number: "01XXXXXXXXX" },
+  { value: "rocket", label: "রকেট", number: "01XXXXXXXXX" },
+  { value: "usdt", label: "USDT (TRC20)", number: "TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" },
+  { value: "trx", label: "TRX", number: "TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" },
+];
+
+const ListingDetail = () => {
+  const { id } = useParams();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { t } = useLanguage();
+  const [listing, setListing] = useState<any>(null);
+  const [sellerProfile, setSellerProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [orderDialog, setOrderDialog] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentRef, setPaymentRef] = useState("");
+  const [ordering, setOrdering] = useState(false);
+  const [restricted, setRestricted] = useState(false);
+
+  const categoryMeta: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+    facebook_page: { icon: <Facebook className="w-6 h-6" />, label: t("cat.facebook_page"), color: "#1877F2" },
+    youtube_channel: { icon: <Youtube className="w-6 h-6" />, label: t("cat.youtube_channel"), color: "#FF0000" },
+    instagram: { icon: <Instagram className="w-6 h-6" />, label: t("cat.instagram"), color: "#E4405F" },
+    twitter: { icon: <Twitter className="w-6 h-6" />, label: t("cat.twitter"), color: "#1DA1F2" },
+    linkedin: { icon: <Linkedin className="w-6 h-6" />, label: t("cat.linkedin"), color: "#0A66C2" },
+    gaming_id: { icon: <Gamepad2 className="w-6 h-6" />, label: t("cat.gaming_id"), color: "#9146FF" },
+    other: { icon: <MoreHorizontal className="w-6 h-6" />, label: t("cat.other"), color: "#6B7280" },
+  };
+
+  useEffect(() => {
+    if (id) fetchListing();
+  }, [id]);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from("profiles").select("is_restricted").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+        if (data?.is_restricted) setRestricted(true);
+      });
+    }
+  }, [user]);
+
+  const fetchListing = async () => {
+    const { data } = await supabase.from("listings").select("id, title, description, category, custom_category, price, currency, seller_id, status, verified, images, followers_count, account_age, platform_url, created_at, updated_at").eq("id", id).single();
+    setListing(data);
+    if (data) {
+      const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", data.seller_id).maybeSingle();
+      setSellerProfile(profile);
+    }
+    setLoading(false);
+  };
+
+  const handleOrder = async () => {
+    if (!user) { navigate("/login"); return; }
+    if (restricted) {
+      toast({ title: "সীমাবদ্ধ", description: "আপনার অ্যাকাউন্ট সীমাবদ্ধ করা হয়েছে।", variant: "destructive" });
+      return;
+    }
+    if (!paymentMethod || !paymentRef.trim()) {
+      toast({ title: "ত্রুটি", description: "পেমেন্ট মেথড এবং ট্রানজেকশন আইডি দিন।", variant: "destructive" });
+      return;
+    }
+    setOrdering(true);
+    const { data: orderData, error } = await supabase.from("orders").insert({
+      listing_id: listing.id,
+      buyer_id: user.id,
+      seller_id: listing.seller_id,
+      amount: listing.price,
+      payment_method: paymentMethod as any,
+      payment_reference: paymentRef.trim(),
+      status: "payment_submitted" as any,
+    }).select("id").single();
+    setOrdering(false);
+    if (error) {
+      toast({ title: "অর্ডার ব্যর্থ", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "অর্ডার সফল!", description: "আপনার পেমেন্ট ভেরিফাই করা হবে।" });
+      setOrderDialog(false);
+      setPaymentRef("");
+
+      const orderId = orderData?.id || "";
+      const shortId = orderId.slice(0, 8).toUpperCase();
+
+      // Notify seller: new order placed
+      await supabase.rpc("create_notification", {
+        _user_id: listing.seller_id,
+        _title: "🛒 নতুন অর্ডার এসেছে",
+        _message: `আপনার "${listing.title}" লিস্টিংয়ে নতুন অর্ডার #${shortId} এসেছে।`,
+        _type: "order",
+        _reference_id: orderId,
+      });
+      // Add English translation
+      const { data: sellerNotif } = await supabase.from("notifications").select("id").eq("user_id", listing.seller_id).eq("type", "order").order("created_at", { ascending: false }).limit(1);
+      if (sellerNotif?.[0]) {
+        await (supabase as any).from("notifications").update({
+          title_en: "🛒 New Order Received",
+          message_en: `New order #${shortId} received for "${listing.title}".`,
+        }).eq("id", sellerNotif[0].id);
+      }
+
+      // Notify admins: payment needs confirmation
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin" as any);
+      if (adminRoles) {
+        for (const adminRole of adminRoles) {
+          await supabase.rpc("create_notification", {
+            _user_id: adminRole.user_id,
+            _title: "💳 পেমেন্ট কনফার্ম করুন",
+            _message: `অর্ডার #${shortId} এ পেমেন্ট জমা দেওয়া হয়েছে। যাচাই করুন।`,
+            _type: "order",
+            _reference_id: orderId,
+          });
+          const { data: adminNotif } = await supabase.from("notifications").select("id").eq("user_id", adminRole.user_id).eq("type", "order").order("created_at", { ascending: false }).limit(1);
+          if (adminNotif?.[0]) {
+            await (supabase as any).from("notifications").update({
+              title_en: "💳 Confirm Payment",
+              message_en: `Payment submitted for order #${shortId}. Please verify.`,
+            }).eq("id", adminNotif[0].id);
+          }
+        }
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 container mx-auto px-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-secondary rounded w-1/3" />
+            <div className="h-4 bg-secondary rounded w-1/2" />
+            <div className="h-40 bg-secondary rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!listing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 container mx-auto px-4 text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">{t("ld.not_found")}</h1>
+          <Link to="/marketplace"><Button>{t("ld.back")}</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  const rawMeta = categoryMeta[listing.category] || categoryMeta.other;
+  const meta = {
+    ...rawMeta,
+    label: listing.category === 'other' && listing.custom_category ? listing.custom_category : rawMeta.label,
+  };
+  const selectedPayment = paymentMethods.find((p) => p.value === paymentMethod);
+  const isStockOut = listing.status === 'sold';
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="pt-20 pb-10">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <Link to="/marketplace" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+            <ArrowLeft className="w-4 h-4" /> {t("ld.back")}
+          </Link>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card overflow-hidden">
+            <div className="h-2 gradient-primary" />
+            <div className="p-6 sm:p-8">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${meta.color}15`, color: meta.color }}>
+                  {meta.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: meta.color }}>{meta.label}</span>
+                    {listing.verified && (
+                      <Badge variant="secondary" className="bg-success/10 text-success border-success/20 gap-1 text-xs">
+                        <ShieldCheck className="w-3 h-3" /> {t("general.verified")}
+                      </Badge>
+                    )}
+                    {isStockOut && (
+                      <Badge variant="destructive" className="gap-1 text-xs">
+                        <PackageX className="w-3 h-3" /> {t("general.stockout")}
+                      </Badge>
+                    )}
+                  </div>
+                  <h1 className="text-2xl font-extrabold text-foreground">{listing.title}</h1>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="text-center p-4 rounded-xl bg-secondary/50 mb-6">
+                <Wallet className="w-5 h-5 mx-auto mb-2 text-primary" />
+                <p className="text-xl font-extrabold text-primary">৳{Number(listing.price).toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{t("ld.price")}</p>
+              </div>
+
+              {/* Seller info */}
+              {sellerProfile && user?.id !== listing.seller_id && (
+                <Link to={`/profile/${listing.seller_id}`} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/30 mb-6 hover:bg-secondary/50 transition-colors">
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={sellerProfile.avatar_url || ""} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">{(sellerProfile.full_name || "?")[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{sellerProfile.full_name || t("ld.seller")}</p>
+                    <p className="text-xs text-muted-foreground">{t("ld.seller_profile")}</p>
+                  </div>
+                </Link>
+              )}
+
+              {/* Description */}
+              {listing.description && (
+                <div className="mb-6">
+                  <h3 className="font-bold text-foreground mb-2">{t("ld.description")}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{listing.description}</p>
+                </div>
+              )}
+
+              {/* Escrow notice */}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/20 mb-6">
+                <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{t("ld.escrow_title")}</p>
+                  <p className="text-xs text-muted-foreground">{t("ld.escrow_desc")}</p>
+                </div>
+              </div>
+
+              {/* Buy button */}
+              {user?.id !== listing.seller_id ? (
+                isStockOut ? (
+                  <Button size="lg" className="w-full h-14 font-bold text-lg" disabled>
+                    <PackageX className="w-5 h-5 mr-2" /> {t("general.stockout")}
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="w-full gradient-primary text-primary-foreground border-0 font-bold text-lg h-14"
+                    onClick={() => user ? setOrderDialog(true) : navigate("/login")}
+                  >
+                    {t("ld.buy_now")} — ৳{Number(listing.price).toLocaleString()}
+                  </Button>
+                )
+              ) : (
+                <div className="text-center p-4 rounded-xl bg-secondary/50">
+                  <p className="text-sm text-muted-foreground">{t("ld.own_listing")}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={orderDialog} onOpenChange={setOrderDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("pay.title")}</DialogTitle>
+            <DialogDescription>
+              {listing ? `৳${Number(listing.price).toLocaleString()}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t("pay.select_method")}</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("pay.select_placeholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPayment && (
+              <div className="p-3 rounded-lg bg-secondary/50 text-center">
+                <p className="text-xs text-muted-foreground mb-1">{t("pay.send_to")}</p>
+                <p className="text-sm font-bold text-foreground font-mono">{selectedPayment.number}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("pay.amount")}: ৳{Number(listing.price).toLocaleString()}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>{t("pay.txid")}</Label>
+              <Input placeholder={t("pay.txid_placeholder")} value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} />
+            </div>
+
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+              <p>{t("pay.notice")}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOrderDialog(false)}>{t("pay.cancel")}</Button>
+            <Button className="gradient-primary text-primary-foreground border-0" onClick={handleOrder} disabled={ordering}>
+              {ordering ? t("pay.submitting") : t("pay.submit")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default ListingDetail;
