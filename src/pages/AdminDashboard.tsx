@@ -853,15 +853,6 @@ interface PayoutRow {
   transactionId?: string;
 }
 
-interface WithdrawalRow {
-  id: string;
-  user_id: string;
-  method: string;
-  account: string;
-  amount: number;
-  status: string;
-  created_at: string;
-}
 
 function PayoutManagementTab({
   orders,
