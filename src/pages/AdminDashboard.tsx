@@ -1002,16 +1002,6 @@ function PayoutManagementTab({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs gap-1"
-                              onClick={() => setExpandedOrder(expandedOrder === row.orderId ? null : row.orderId)}
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              চ্যাট
-                              <ChevronDown className={`w-3 h-3 transition-transform ${expandedOrder === row.orderId ? "rotate-180" : ""}`} />
-                            </Button>
                             {row.status === "pending" && (
                               <Button
                                 size="sm"
@@ -1027,19 +1017,6 @@ function PayoutManagementTab({
                           </div>
                         </TableCell>
                       </TableRow>
-                      {expandedOrder === row.orderId && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="p-4">
-                            <OrderChat
-                              orderId={row.orderId}
-                              buyerId={orders.find(o => o.id === row.orderId)?.buyer_id || ""}
-                              sellerId={row.sellerId}
-                              orderStatus="completed"
-                              isAdminView={true}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </React.Fragment>
                   ))}
                 </TableBody>
