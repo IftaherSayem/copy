@@ -928,97 +928,16 @@ function PayoutManagementTab({
     setPayModal(null);
     setTxId("");
   };
+  const methodLabels: Record<string, string> = {
+    bkash: "বিকাশ",
+    nagad: "নগদ",
+    rocket: "রকেট",
+    usdt: "USDT",
+    trx: "TRX",
+  };
+
   return (
     <>
-      {/* Withdrawal Requests Section */}
-      <Card className="bg-card border-border mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="w-5 h-5 text-primary" /> সেলার উত্তোলন অনুরোধ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingWithdrawals ? (
-            <div className="py-12 text-center">
-              <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
-              <p className="text-muted-foreground text-sm">লোড হচ্ছে...</p>
-            </div>
-          ) : withdrawals.length === 0 ? (
-            <div className="py-12 text-center">
-              <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground text-sm">কোনো উত্তোলন অনুরোধ নেই।</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>তারিখ</TableHead>
-                    <TableHead>সেলার</TableHead>
-                    <TableHead>মেথড</TableHead>
-                    <TableHead>অ্যাকাউন্ট</TableHead>
-                    <TableHead>পরিমাণ</TableHead>
-                    <TableHead>স্ট্যাটাস</TableHead>
-                    <TableHead>অ্যাকশন</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {withdrawals.map(row => {
-                    const st = withdrawalStatusConfig[row.status] || withdrawalStatusConfig.pending;
-                    return (
-                      <TableRow key={row.id}>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(row.created_at).toLocaleDateString("bn-BD")}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">{getProfileName(row.user_id)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">{methodLabels[row.method] || row.method}</Badge>
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">{row.account}</TableCell>
-                        <TableCell className="font-semibold">৳{Number(row.amount).toLocaleString()}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`text-xs ${st.className}`}>{st.label}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {row.status === "pending" && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
-                                  disabled={updatingId === row.id}
-                                  onClick={() => updateWithdrawalStatus(row.id, "completed")}
-                                >
-                                  {updatingId === row.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-                                  সম্পন্ন
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs gap-1 text-red-500 border-red-500/30 hover:bg-red-500/10"
-                                  disabled={updatingId === row.id}
-                                  onClick={() => updateWithdrawalStatus(row.id, "cancelled")}
-                                >
-                                  <Ban className="w-3 h-3" /> বাতিল
-                                </Button>
-                              </>
-                            )}
-                            {row.status !== "pending" && (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Order-based Payouts Section */}
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
