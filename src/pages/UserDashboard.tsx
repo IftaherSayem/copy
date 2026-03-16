@@ -487,13 +487,6 @@ export default function UserDashboard() {
             </div>
           </TabsContent>
 
-          {/* WALLET & PAYOUTS TAB */}
-          <TabsContent value="wallet">
-            <WalletPayouts
-              totalEarned={totalEarned}
-              pendingPayout={sellOrders.filter(o => ["delivering", "delivered"].includes(o.status)).reduce((s, o) => s + Number(o.amount), 0)}
-            />
-          </TabsContent>
         </Tabs>
       </div>
       <Footer />
