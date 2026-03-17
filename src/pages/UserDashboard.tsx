@@ -84,6 +84,10 @@ export default function UserDashboard() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
 
+  // Payout date filter
+  const [payoutDateFrom, setPayoutDateFrom] = useState("");
+  const [payoutDateTo, setPayoutDateTo] = useState("");
+
   const initialLoadDone = useRef(false);
 
   useEffect(() => {
