@@ -873,15 +873,16 @@ function PayoutManagementTab({
   const [txId, setTxId] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [localOrders, setLocalOrders] = useState(orders);
-
-
-
+  const [filterSeller, setFilterSeller] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterMethod, setFilterMethod] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
 
   // Sync localOrders when parent orders change
   useEffect(() => { setLocalOrders(orders); }, [orders]);
 
   // Build payout rows from completed orders where seller needs to be paid
-  const payoutRows: PayoutRow[] = localOrders
+  const allPayoutRows: PayoutRow[] = localOrders
     .filter(o => o.status === "completed")
     .map(o => {
       const listing = listings.find(l => l.id === o.listing_id);
@@ -896,10 +897,27 @@ function PayoutManagementTab({
         paymentMethod: o.payment_method || "—",
         paymentInfo,
         date: new Date(o.created_at).toLocaleDateString("bn-BD"),
+        rawDate: o.created_at,
         status: ((o as any).payout_status === "completed" ? "completed" : "pending") as "pending" | "completed",
         transactionId: (o as any).payout_transaction_id || undefined,
       };
     });
+
+  // Unique sellers and methods for filter dropdowns
+  const uniqueSellers = Array.from(new Map(allPayoutRows.map(r => [r.sellerId, r.sellerName])).entries());
+  const uniqueMethods = Array.from(new Set(allPayoutRows.map(r => r.paymentMethod)));
+
+  // Apply filters
+  const payoutRows = allPayoutRows.filter(r => {
+    if (filterSeller !== "all" && r.sellerId !== filterSeller) return false;
+    if (filterStatus !== "all" && r.status !== filterStatus) return false;
+    if (filterMethod !== "all" && r.paymentMethod !== filterMethod) return false;
+    if (filterDate) {
+      const rowDate = new Date(r.rawDate).toISOString().split("T")[0];
+      if (rowDate !== filterDate) return false;
+    }
+    return true;
+  });
 
   const handleConfirmPay = async () => {
     if (!payModal) return;
