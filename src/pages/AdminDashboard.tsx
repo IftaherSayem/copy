@@ -1063,6 +1063,7 @@ function PayoutManagementTab({
                 </div>
               )}
             </div>
+          )}
           {payoutRows.length === 0 ? (
             <div className="py-12 text-center">
               <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
