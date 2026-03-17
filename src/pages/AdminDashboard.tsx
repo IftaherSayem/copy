@@ -1002,7 +1002,68 @@ function PayoutManagementTab({
           )}
         </CardHeader>
         <CardContent>
-          {payoutRows.length === 0 ? (
+          {/* Filters */}
+          {allPayoutRows.length > 0 && (
+            <div className="flex flex-wrap gap-3 mb-4">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">বিক্রেতা</Label>
+                <Select value={filterSeller} onValueChange={setFilterSeller}>
+                  <SelectTrigger className="h-8 w-[160px] text-xs">
+                    <SelectValue placeholder="সব বিক্রেতা" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">সব বিক্রেতা</SelectItem>
+                    {uniqueSellers.map(([id, name]) => (
+                      <SelectItem key={id} value={id}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">স্ট্যাটাস</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-8 w-[130px] text-xs">
+                    <SelectValue placeholder="সব স্ট্যাটাস" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">সব স্ট্যাটাস</SelectItem>
+                    <SelectItem value="pending">পেন্ডিং</SelectItem>
+                    <SelectItem value="completed">সম্পন্ন</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">পেমেন্ট মেথড</Label>
+                <Select value={filterMethod} onValueChange={setFilterMethod}>
+                  <SelectTrigger className="h-8 w-[130px] text-xs">
+                    <SelectValue placeholder="সব মেথড" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">সব মেথড</SelectItem>
+                    {uniqueMethods.map(m => (
+                      <SelectItem key={m} value={m}>{methodLabels[m] || m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">তারিখ</Label>
+                <Input
+                  type="date"
+                  className="h-8 w-[150px] text-xs"
+                  value={filterDate}
+                  onChange={e => setFilterDate(e.target.value)}
+                />
+              </div>
+              {(filterSeller !== "all" || filterStatus !== "all" || filterMethod !== "all" || filterDate) && (
+                <div className="flex items-end">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setFilterSeller("all"); setFilterStatus("all"); setFilterMethod("all"); setFilterDate(""); }}>
+                    ✕ ফিল্টার রিসেট
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
             <div className="py-12 text-center">
               <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-muted-foreground text-sm">কোনো পেন্ডিং পেআউট নেই।</p>
