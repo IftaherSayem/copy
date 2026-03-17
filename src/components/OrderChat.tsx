@@ -387,9 +387,8 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
   };
 
   const getSenderLabel = (senderId: string) => {
-    if (senderId === buyerId) return "ক্রেতা";
-    if (senderId === sellerId) return "বিক্রেতা";
-    return "অ্যাডমিন";
+    if (senderId !== buyerId && senderId !== sellerId) return "অ্যাডমিন";
+    return profileNames[senderId] || (senderId === buyerId ? "ক্রেতা" : "বিক্রেতা");
   };
 
   const getMessageStatus = (msg: Message) => {
