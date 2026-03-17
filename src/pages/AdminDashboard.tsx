@@ -849,6 +849,7 @@ interface PayoutRow {
   paymentMethod: string;
   paymentInfo: string;
   date: string;
+  rawDate: string;
   status: "pending" | "completed";
   transactionId?: string;
 }
