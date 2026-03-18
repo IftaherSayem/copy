@@ -438,10 +438,22 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
       {/* Header */}
       <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5 flex items-center justify-between">
         <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-            <MessageSquareText className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <span>{isBuyer ? (profileNames[sellerId] || "বিক্রেতা") : isSeller ? (profileNames[buyerId] || "ক্রেতা") : "অর্ডার চ্যাট"}</span>
+          {(() => {
+            const otherUserId = isBuyer ? sellerId : isSeller ? buyerId : null;
+            const otherName = otherUserId ? (profileNames[otherUserId] || (isBuyer ? "বিক্রেতা" : "ক্রেতা")) : "অর্ডার চ্যাট";
+            const otherAvatar = otherUserId ? profileAvatars[otherUserId] : null;
+            return (
+              <>
+                <Avatar className="w-7 h-7">
+                  {otherAvatar ? <AvatarImage src={otherAvatar} alt={otherName} /> : null}
+                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                    {otherUserId ? (otherName?.[0] || <User className="w-3.5 h-3.5" />) : <MessageSquareText className="w-3.5 h-3.5" />}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{otherName}</span>
+              </>
+            );
+          })()}
           {isAdminView && <Badge variant="secondary" className="text-[10px] rounded-full">শুধু দেখার জন্য</Badge>}
           {isCompleted && (
             <Badge variant="outline" className="text-[10px] rounded-full bg-emerald-500/10 text-emerald-500 border-emerald-500/30 gap-0.5">
