@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Send, Key, Loader2, ShieldCheck, CheckCircle2, AlertTriangle, MessageSquareText, X, Check, CheckCheck, Lock, Flag, Paperclip, FileText, Image as ImageIcon, Download } from "lucide-react";
+import { Send, Key, Loader2, ShieldCheck, CheckCircle2, AlertTriangle, MessageSquareText, X, Check, CheckCheck, Lock, Flag, Paperclip, FileText, Image as ImageIcon, Download, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,7 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
   const [reportSending, setReportSending] = useState(false);
   const [chatOpenLocal, setChatOpenLocal] = useState(false);
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  const [profileAvatars, setProfileAvatars] = useState<Record<string, string>>({});
   // Use controlled state if provided, otherwise local
   const chatOpen = openChatId !== undefined ? openChatId === orderId : chatOpenLocal;
   const setChatOpen = (open: boolean) => {
@@ -112,14 +114,17 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
       if (userIds.length === 0) return;
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, avatar_url")
         .in("user_id", userIds);
       if (data) {
         const names: Record<string, string> = {};
+        const avatars: Record<string, string> = {};
         data.forEach((p) => {
           if (p.full_name) names[p.user_id] = p.full_name;
+          if (p.avatar_url) avatars[p.user_id] = p.avatar_url;
         });
         setProfileNames(names);
+        setProfileAvatars(avatars);
       }
     };
     fetchProfiles();
@@ -515,6 +520,14 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
+                  <Avatar className="w-5 h-5">
+                    {!isSystemMsg && profileAvatars[msg.sender_id] ? (
+                      <AvatarImage src={profileAvatars[msg.sender_id]} alt={getSenderLabel(msg.sender_id)} />
+                    ) : null}
+                    <AvatarFallback className="text-[8px] bg-muted">
+                      {isSystemMsg ? "A" : (getSenderLabel(msg.sender_id)?.[0] || <User className="w-3 h-3" />)}
+                    </AvatarFallback>
+                  </Avatar>
                   <span className={`text-[10px] font-semibold ${
                     isSystemMsg ? "text-purple-500" : isBuyerMsg ? "text-blue-500" : msg.sender_id === sellerId ? "text-emerald-500" : "text-purple-500"
                   }`}>
