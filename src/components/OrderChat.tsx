@@ -520,6 +520,14 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
+                  <Avatar className="w-5 h-5">
+                    {!isSystemMsg && profileAvatars[msg.sender_id] ? (
+                      <AvatarImage src={profileAvatars[msg.sender_id]} alt={getSenderLabel(msg.sender_id)} />
+                    ) : null}
+                    <AvatarFallback className="text-[8px] bg-muted">
+                      {isSystemMsg ? "A" : (getSenderLabel(msg.sender_id)?.[0] || <User className="w-3 h-3" />)}
+                    </AvatarFallback>
+                  </Avatar>
                   <span className={`text-[10px] font-semibold ${
                     isSystemMsg ? "text-purple-500" : isBuyerMsg ? "text-blue-500" : msg.sender_id === sellerId ? "text-emerald-500" : "text-purple-500"
                   }`}>
