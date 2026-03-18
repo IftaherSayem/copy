@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Send, Key, Loader2, ShieldCheck, CheckCircle2, AlertTriangle, MessageSquareText, X, Check, CheckCheck, Lock, Flag, Paperclip, FileText, Image as ImageIcon, Download } from "lucide-react";
+import { Send, Key, Loader2, ShieldCheck, CheckCircle2, AlertTriangle, MessageSquareText, X, Check, CheckCheck, Lock, Flag, Paperclip, FileText, Image as ImageIcon, Download, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
