@@ -20,10 +20,11 @@ const fadeUp = {
 };
 
 const Marketplace = () => {
+  const [searchParams] = useSearchParams();
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("all");
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "all");
   const [sortBy, setSortBy] = useState("newest");
   const { t } = useLanguage();
 
