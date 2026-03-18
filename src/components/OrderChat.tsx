@@ -89,6 +89,7 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
   const [reportSending, setReportSending] = useState(false);
   const [chatOpenLocal, setChatOpenLocal] = useState(false);
   const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+  const [profileAvatars, setProfileAvatars] = useState<Record<string, string>>({});
   // Use controlled state if provided, otherwise local
   const chatOpen = openChatId !== undefined ? openChatId === orderId : chatOpenLocal;
   const setChatOpen = (open: boolean) => {
