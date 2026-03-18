@@ -114,14 +114,17 @@ export function OrderChat({ orderId, buyerId, sellerId, orderStatus, onOrderComp
       if (userIds.length === 0) return;
       const { data } = await supabase
         .from("profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, avatar_url")
         .in("user_id", userIds);
       if (data) {
         const names: Record<string, string> = {};
+        const avatars: Record<string, string> = {};
         data.forEach((p) => {
           if (p.full_name) names[p.user_id] = p.full_name;
+          if (p.avatar_url) avatars[p.user_id] = p.avatar_url;
         });
         setProfileNames(names);
+        setProfileAvatars(avatars);
       }
     };
     fetchProfiles();
