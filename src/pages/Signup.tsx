@@ -17,7 +17,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
