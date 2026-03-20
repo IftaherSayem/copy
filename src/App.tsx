@@ -50,6 +50,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <SupportChat />
+            <EmailConfirmedDialog />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
