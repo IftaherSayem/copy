@@ -19,6 +19,7 @@ export function Navbar() {
   const [pendingOrders, setPendingOrders] = useState(0);
   const { user, signOut } = useAuth();
   const { lang, setLang, t } = useLanguage();
+  const location = useLocation();
 
   const navLinks = [
     { label: t("nav.home"), href: "/" },
