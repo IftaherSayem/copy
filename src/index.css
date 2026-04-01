@@ -106,7 +106,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
 
