@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User, ShieldCheck, CheckCircle2, Clock, Calendar, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,7 @@ export function Navbar() {
   const [pendingOrders, setPendingOrders] = useState(0);
   const { user, signOut } = useAuth();
   const { lang, setLang, t } = useLanguage();
+  const location = useLocation();
 
   const navLinks = [
     { label: t("nav.home"), href: "/" },
@@ -127,15 +128,22 @@ export function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-6 lg:gap-7">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="relative text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 py-1 after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[2px] after:bg-primary after:rounded-full after:transition-all after:duration-300 hover:after:w-full"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={`relative text-sm font-medium transition-colors duration-200 py-1 after:absolute after:bottom-0 after:left-0 after:h-[2px] after:bg-primary after:rounded-full after:transition-all after:duration-300 ${
+                  isActive
+                    ? "text-foreground after:w-full"
+                    : "text-muted-foreground hover:text-foreground after:w-0 hover:after:w-full"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="hidden md:flex items-center gap-4">
