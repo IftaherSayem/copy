@@ -198,7 +198,7 @@ const Index = () => {
                 </Button>
               </Link>
               <Link to="/marketplace">
-                <Button size="lg" variant="outline" className="border-border/30 font-bold px-8 rounded-xl" style={{ color: "hsl(0 0% 90%)", borderColor: "hsl(220 14% 40%)" }}>
+                <Button size="lg" variant="outline" className="font-bold px-8 rounded-xl border-2 border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10">
                   {t("cta.browse_btn")}
                 </Button>
               </Link>
